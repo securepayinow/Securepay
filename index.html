@@ -1,1 +1,268 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Payment Request</title>
+
+<style>
+
+body{
+    background:#eef2f7;
+    font-family: Arial;
+    padding:15px;
+}
+
+.card{
+    max-width:420px;
+    margin:auto;
+    background:white;
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.06);
+}
+
+.timer{
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+    color:#d35400;
+}
+
+.box{
+    background:#f4f7fb;
+    padding:14px;
+    border-radius:8px;
+    margin-top:12px;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:12px 0;
+}
+
+.label{
+    color:gray;
+    font-size:14px;
+}
+
+.value{
+    font-weight:bold;
+    font-size:18px;
+}
+
+.copy{
+    background:#2ea3f2;
+    border:none;
+    color:white;
+    padding:6px 10px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.qr{
+    display:block;
+    margin:18px auto;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    margin-top:10px;
+    font-size:16px;
+}
+
+button.submit{
+    width:100%;
+    padding:15px;
+    background:#2ea3f2;
+    border:none;
+    color:white;
+    border-radius:8px;
+    margin-top:12px;
+    font-size:17px;
+}
+
+.success, .expired{
+    display:none;
+    text-align:center;
+    padding:25px;
+}
+
+.success h2{
+    color:green;
+}
+
+.expired h2{
+    color:red;
+}
+
+.copyMsg{
+    text-align:center;
+    color:green;
+    display:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card" id="paymentCard">
+
+<div class="timer">
+Expires in <span id="countdown">05:00</span>
+</div>
+
+<div class="box">
+
+<div class="row">
+<div>
+<div class="label">Customer</div>
+<div class="value" id="customer"></div>
+</div>
+<button class="copy" onclick="copyText('customer')">Copy</button>
+</div>
+
+<div class="row">
+<div>
+<div class="label">Amount</div>
+<div class="value" id="amount"></div>
+</div>
+<button class="copy" onclick="copyText('amountRaw')">Copy</button>
+</div>
+
+<div class="row">
+<div>
+<div class="label">UPI ID</div>
+<div class="value" id="upi"></div>
+</div>
+<button class="copy" onclick="copyText('upi')">Copy</button>
+</div>
+
+<div class="copyMsg" id="copyMsg">Copied ✓</div>
+
+<img id="qr" class="qr" width="200"/>
+
+</div>
+
+<input maxlength="12" id="utr" placeholder="Enter 12-digit UTR"/>
+
+<button class="submit" onclick="submitUTR()">
+Submit UTR
+</button>
+
+</div>
+
+
+<div class="card success" id="successCard">
+<h2>Payment Successful ✓</h2>
+Verification in progress.
+</div>
+
+<div class="card expired" id="expiredCard">
+<h2>Link Expired</h2>
+Please request a new payment link.
+</div>
+
+
+
+<script>
+
+/* GET URL DATA */
+
+const params = new URLSearchParams(window.location.search);
+
+const customer=params.get("customer") || "Customer";
+const amount=params.get("amount") || "1";
+const upi=params.get("upi") || "upi@bank";
+
+document.getElementById("customer").innerText=customer;
+document.getElementById("amount").innerText="₹"+amount;
+document.getElementById("upi").innerText=upi;
+
+
+/* RAW AMOUNT */
+
+const raw=document.createElement("span");
+raw.id="amountRaw";
+raw.style.display="none";
+raw.innerText=amount;
+document.body.appendChild(raw);
+
+
+/* QR */
+
+const payString=`upi://pay?pa=${upi}&pn=Payment&am=${amount}&cu=INR`;
+
+document.getElementById("qr").src=
+`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payString)}`;
+
+
+/* COPY */
+
+function copyText(id){
+navigator.clipboard.writeText(document.getElementById(id).innerText);
+
+const msg=document.getElementById("copyMsg");
+msg.style.display="block";
+
+setTimeout(()=>msg.style.display="none",1000);
+}
+
+
+/* TIMER — 300 SEC */
+
+let time=300;
+
+const countdown=setInterval(()=>{
+
+let minutes=Math.floor(time/60);
+let seconds=time%60;
+
+if(seconds<10) seconds="0"+seconds;
+
+document.getElementById("countdown").innerText=
+`${minutes}:${seconds}`;
+
+time--;
+
+if(time<0){
+
+clearInterval(countdown);
+
+document.getElementById("paymentCard").style.display="none";
+document.getElementById("expiredCard").style.display="block";
+
+}
+
+},1000);
+
+
+/* UTR */
+
+function submitUTR(){
+
+if(time<0)return;
+
+const utr=document.getElementById("utr").value;
+
+if(!/^[0-9]{12}$/.test(utr)){
+return;
+}
+
+document.getElementById("paymentCard").style.display="none";
+document.getElementById("successCard").style.display="block";
+
+}
+
+</script>
+
+</body>
+</html>
